@@ -2,6 +2,7 @@
 layout: default
 title: Designing an LLM-Powered Incident Copilot for Production Log Analysis
 ---
+
 # Designing an LLM-Powered Incident Copilot for Production Log Analysis
 
 *How I built an AI system that actually cites its sources  and why that matters more than you'd think.*
@@ -87,47 +88,15 @@ At a high level, the system follows a **Retrieval-Augmented Generation (RAG)** p
 
 ### System Architecture
 
-```mermaid
-flowchart TB
-    subgraph Frontend[" Frontend (React + Vite)"]
-        UI[Web UI<br/>Port 5173]
-        Upload[Upload Panel]
-        Chat[Chat Panel]
-    end
+![System Architecture](RAG.png)
 
-    subgraph Backend[" Backend (FastAPI)"]
-        API[REST API<br/>Port 8000]
-        Parser[Log Parser]
-        Chunker[Smart Chunker]
-        Embedder[Embedding Engine]
-        Analyzer[RAG Analyzer]
-    end
+*The complete system architecture showing Frontend, Backend, Storage, and LLM layers.*
 
-    subgraph Storage[" Storage Layer"]
-        Qdrant[(Qdrant<br/>Vector DB)]
-    end
+### How It Works
 
-    subgraph LLM[" LLM Providers"]
-        Ollama[Ollama<br/>Local]
-        Groq[Groq Cloud<br/>500+ tok/s]
-    end
+![How It Works](How-it-works.png)
 
-    UI --> Upload & Chat
-    Upload --> API
-    Chat --> API
-    API --> Parser --> Chunker --> Embedder
-    Embedder --> Qdrant
-    API --> Analyzer
-    Analyzer --> Qdrant
-    Analyzer --> Groq
-    Analyzer --> Ollama
-    Embedder --> Ollama
-
-    style Frontend fill:#e0f2fe,stroke:#0369a1
-    style Backend fill:#fef3c7,stroke:#d97706
-    style Storage fill:#d1fae5,stroke:#059669
-    style LLM fill:#fce7f3,stroke:#db2777
-```
+*End-to-end flow from log upload to AI-powered analysis.*
 
 ### The Key Components
 
@@ -143,45 +112,21 @@ flowchart TB
 
 **1. Ingestion Pipeline**  When you upload a log file:
 
-```mermaid
-flowchart LR
-    A[ Upload<br/>Log File] --> B[ Detect<br/>Format]
-    B --> C[ Smart<br/>Chunking]
-    C --> D[ Generate<br/>Embeddings]
-    D --> E[ Store in<br/>Qdrant]
+![Ingestion Pipeline](ingestion-pipeline.png)
 
-    B -.->|JSON, Logfmt,<br/>Syslog, Java| C
-    C -.->|50 lines max<br/>2000 chars| D
-    D -.->|768-dim<br/>vectors| E
-
-    style A fill:#dbeafe,stroke:#1e40af
-    style B fill:#fef9c3,stroke:#ca8a04
-    style C fill:#fed7aa,stroke:#ea580c
-    style D fill:#e9d5ff,stroke:#7c3aed
-    style E fill:#d1fae5,stroke:#059669
-```
+*Upload  Format Detection  Smart Chunking  Embeddings  Vector Storage*
 
 **2. Analysis Pipeline**  When you ask a question:
 
-```mermaid
-flowchart LR
-    Q[ User<br/>Question] --> E[ Embed<br/>Question]
-    E --> S[ Vector<br/>Search]
-    S --> C[ Build<br/>Context]
-    C --> L[ LLM<br/>Inference]
-    L --> P[ Parse<br/>Response]
-    P --> R[ Structured<br/>Answer]
+![Analysis Pipeline](Analysis-pipeline.png)
 
-    S -.->|Top 6<br/>chunks| C
-    C -.->|Evidence +<br/>Prompt| L
+*Question  Embed  Vector Search  Build Context  LLM Inference  Structured Answer*
 
-    style Q fill:#dbeafe,stroke:#1e40af
-    style E fill:#e9d5ff,stroke:#7c3aed
-    style S fill:#fef9c3,stroke:#ca8a04
-    style C fill:#fed7aa,stroke:#ea580c
-    style L fill:#fce7f3,stroke:#db2777
-    style R fill:#a7f3d0,stroke:#047857
-```
+### Data Flow
+
+![Data Flow](Data-flow.png)
+
+*Complete data flow through the system.*
 
 > **Critical design decision:** The LLM never sees the full log  only retrieved evidence. This is deliberate. It limits hallucination and enforces grounding.
 
@@ -274,14 +219,6 @@ I intentionally designed the system to support multiple inference backends. Why?
 | Log ingestion + embeddings | ~34 seconds |
 | Analysis (Groq cloud) | ~2.5 seconds |
 | Analysis (Ollama local) | ~30 seconds |
-
-```mermaid
-xychart-beta
-    title "Analysis Latency Comparison"
-    x-axis ["Groq (Cloud)", "Ollama (Local)"]
-    y-axis "Seconds" 0 --> 35
-    bar [2.5, 30]
-```
 
 **The tradeoffs are real:**
 
@@ -472,4 +409,3 @@ If the system can't explain *why* it reached a conclusion, it shouldn't be trust
 ---
 
 *Tags: #AI #LLM #RAG #DevOps #SRE #Observability #Python #FastAPI #VectorDatabase #IncidentManagement*
-
