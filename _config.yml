@@ -1,0 +1,11 @@
+﻿title: Avinash Amudala
+description: AI/ML, Software Engineering, and Building Useful Tools
+url: https://avinash-amudala.github.io
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Enable Mermaid diagrams
+mermaid:
+  enabled: true

@@ -1,4 +1,8 @@
-﻿# Designing an LLM-Powered Incident Copilot for Production Log Analysis
+﻿---
+layout: default
+title: Designing an LLM-Powered Incident Copilot for Production Log Analysis
+---
+# Designing an LLM-Powered Incident Copilot for Production Log Analysis
 
 *How I built an AI system that actually cites its sources  and why that matters more than you'd think.*
 
@@ -10,7 +14,7 @@ It's 3 AM. Your phone buzzes. Production is down.
 
 You SSH into the server, tail the logs, and stare at 50,000 lines of text scrolling past. Somewhere in there is the answer. But where?
 
-You try `grep ERROR`. 2,000 results. You try `grep -B5 -A5 "connection refused""`. Still too much noise. You start mentally correlating timestamps, service names, and stack traces  all while Slack is blowing up with "any update?"
+You try `grep ERROR`. 2,000 results. You try `grep -B5 -A5 "connection refused"`. Still too much noise. You start mentally correlating timestamps, service names, and stack traces  all while Slack is blowing up with "any update?"
 
 **This is the reality of incident debugging in 2026.** Despite advances in observability tooling, much of incident response still relies on:
 
@@ -61,17 +65,17 @@ Here's what the output looks like:
 
 ---
 
-## See It In Action
+##  See It In Action
 
 ### Uploading and Analyzing Logs
 
-![Upload Demo](/upload-logfile.gif)
+![Upload Demo](upload-logfile.gif)
 
 *Drag and drop any log file. The system auto-detects the format (JSON, Logfmt, Syslog, Java/Hadoop) and extracts metadata.*
 
 ### AI-Powered Root Cause Analysis
 
-![Analysis Demo](/askAI.gif)
+![Analysis Demo](askAI.gif)
 
 *Ask questions in plain English. Get structured answers with evidence citations from actual log lines.*
 
@@ -80,6 +84,50 @@ Here's what the output looks like:
 ## The Architecture: RAG With Guardrails
 
 At a high level, the system follows a **Retrieval-Augmented Generation (RAG)** pattern  but with strict guardrails for correctness.
+
+### System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Frontend[" Frontend (React + Vite)"]
+        UI[Web UI<br/>Port 5173]
+        Upload[Upload Panel]
+        Chat[Chat Panel]
+    end
+
+    subgraph Backend[" Backend (FastAPI)"]
+        API[REST API<br/>Port 8000]
+        Parser[Log Parser]
+        Chunker[Smart Chunker]
+        Embedder[Embedding Engine]
+        Analyzer[RAG Analyzer]
+    end
+
+    subgraph Storage[" Storage Layer"]
+        Qdrant[(Qdrant<br/>Vector DB)]
+    end
+
+    subgraph LLM[" LLM Providers"]
+        Ollama[Ollama<br/>Local]
+        Groq[Groq Cloud<br/>500+ tok/s]
+    end
+
+    UI --> Upload & Chat
+    Upload --> API
+    Chat --> API
+    API --> Parser --> Chunker --> Embedder
+    Embedder --> Qdrant
+    API --> Analyzer
+    Analyzer --> Qdrant
+    Analyzer --> Groq
+    Analyzer --> Ollama
+    Embedder --> Ollama
+
+    style Frontend fill:#e0f2fe,stroke:#0369a1
+    style Backend fill:#fef3c7,stroke:#d97706
+    style Storage fill:#d1fae5,stroke:#059669
+    style LLM fill:#fce7f3,stroke:#db2777
+```
 
 ### The Key Components
 
@@ -95,23 +143,45 @@ At a high level, the system follows a **Retrieval-Augmented Generation (RAG)** p
 
 **1. Ingestion Pipeline**  When you upload a log file:
 
-```
-Upload Log File -> Detect Format -> Smart Chunking -> Generate Embeddings -> Store in Qdrant
-```
+```mermaid
+flowchart LR
+    A[ Upload<br/>Log File] --> B[ Detect<br/>Format]
+    B --> C[ Smart<br/>Chunking]
+    C --> D[ Generate<br/>Embeddings]
+    D --> E[ Store in<br/>Qdrant]
 
-- Format detection: JSON, Logfmt, Syslog, Java/Hadoop
-- Smart chunking: 50 lines max, 2000 chars
-- Embeddings: 768-dimensional vectors via nomic-embed-text
+    B -.->|JSON, Logfmt,<br/>Syslog, Java| C
+    C -.->|50 lines max<br/>2000 chars| D
+    D -.->|768-dim<br/>vectors| E
+
+    style A fill:#dbeafe,stroke:#1e40af
+    style B fill:#fef9c3,stroke:#ca8a04
+    style C fill:#fed7aa,stroke:#ea580c
+    style D fill:#e9d5ff,stroke:#7c3aed
+    style E fill:#d1fae5,stroke:#059669
+```
 
 **2. Analysis Pipeline**  When you ask a question:
 
-```
-User Question -> Embed Question -> Vector Search -> Build Context -> LLM Inference -> Structured Answer
-```
+```mermaid
+flowchart LR
+    Q[ User<br/>Question] --> E[ Embed<br/>Question]
+    E --> S[ Vector<br/>Search]
+    S --> C[ Build<br/>Context]
+    C --> L[ LLM<br/>Inference]
+    L --> P[ Parse<br/>Response]
+    P --> R[ Structured<br/>Answer]
 
-- Vector search returns top 6 most relevant chunks
-- Context includes evidence + prompt
-- LLM returns structured JSON with citations
+    S -.->|Top 6<br/>chunks| C
+    C -.->|Evidence +<br/>Prompt| L
+
+    style Q fill:#dbeafe,stroke:#1e40af
+    style E fill:#e9d5ff,stroke:#7c3aed
+    style S fill:#fef9c3,stroke:#ca8a04
+    style C fill:#fed7aa,stroke:#ea580c
+    style L fill:#fce7f3,stroke:#db2777
+    style R fill:#a7f3d0,stroke:#047857
+```
 
 > **Critical design decision:** The LLM never sees the full log  only retrieved evidence. This is deliberate. It limits hallucination and enforces grounding.
 
@@ -130,7 +200,7 @@ My first attempt was naive: split logs every 50 lines. It failed badly.
 | Problem | Impact |
 |---------|--------|
 | Errors lost temporal context | Couldn't correlate cause and effect |
-| Warnings and errors got separated | Missed the "warning -> error" pattern |
+| Warnings and errors got separated | Missed the "warning  error" pattern |
 | Important causal lines fell into different chunks | Retrieval became noisy |
 | Fixed-size chunks ignored log structure | Java stack traces got split mid-trace |
 
@@ -205,14 +275,22 @@ I intentionally designed the system to support multiple inference backends. Why?
 | Analysis (Groq cloud) | ~2.5 seconds |
 | Analysis (Ollama local) | ~30 seconds |
 
+```mermaid
+xychart-beta
+    title "Analysis Latency Comparison"
+    x-axis ["Groq (Cloud)", "Ollama (Local)"]
+    y-axis "Seconds" 0 --> 35
+    bar [2.5, 30]
+```
+
 **The tradeoffs are real:**
 
 | Factor | Groq (Cloud) | Ollama (Local) |
 |--------|--------------|----------------|
-| **Latency** | 2.5s | 30s |
-| **Privacy** | Data leaves your network | Fully local |
+| **Latency** |  2.5s |  30s |
+| **Privacy** |  Data leaves your network |  Fully local |
 | **Cost** | Free tier available | Free forever |
-| **Offline** | Requires internet | Works anywhere |
+| **Offline** |  Requires internet |  Works anywhere |
 
 **My takeaway:** The surrounding pipeline (chunking + retrieval) matters more than the model choice. A well-designed RAG system with a smaller model beats a giant model with bad retrieval.
 
@@ -247,7 +325,7 @@ This exposed edge cases that synthetic data would never reveal:
 
 Let me be honest about the failures. These aren't theoretical  they showed up immediately with real logs.
 
-### Problem 1: Chunk Explosion
+###  Problem 1: Chunk Explosion
 
 **Symptom:** Early versions produced 500+ chunks for a 10MB file.
 
@@ -255,7 +333,7 @@ Let me be honest about the failures. These aren't theoretical  they showed up im
 
 **Fix:** Hard limit of 50 chunks, prioritized by error density.
 
-### Problem 2: Embedding Bottleneck
+###  Problem 2: Embedding Bottleneck
 
 **Symptom:** Sequential embedding calls created thousands of TIME_WAIT connections.
 
@@ -271,9 +349,9 @@ def ollama_embed(texts: List[str]) -> List[List[float]]:
     return vectors
 ```
 
-**Result:** 3x faster ingestion (100s -> 34s for 10MB file).
+**Result:** 3x faster ingestion (100s  34s for 10MB file).
 
-### Problem 3: Over-Confident Answers
+###  Problem 3: Over-Confident Answers
 
 **Symptom:** The LLM would say "the root cause is X" even with weak evidence.
 
@@ -281,7 +359,7 @@ def ollama_embed(texts: List[str]) -> List[List[float]]:
 
 **Fix:** Stricter system prompts + explicit confidence reporting + evidence requirements.
 
-### Problem 4: Local Inference Speed
+###  Problem 4: Local Inference Speed
 
 **Symptom:** 30+ second response times with Ollama.
 
@@ -316,16 +394,21 @@ def ollama_embed(texts: List[str]) -> List[List[float]]:
 
 This project is aimed at:
 
-- **SREs and on-call engineers**  Faster initial triage during incidents
-- **Platform and infrastructure teams**  Exploring AI-assisted debugging
-- **Engineers building observability tooling**  RAG patterns for operational data
-- **Applied AI engineers**  Building RAG systems for real users, not demos
+ **SREs and on-call engineers**  Faster initial triage during incidents
+
+ **Platform and infrastructure teams**  Exploring AI-assisted debugging
+
+ **Engineers building observability tooling**  RAG patterns for operational data
+
+ **Applied AI engineers**  Building RAG systems for real users, not demos
 
 **It is NOT:**
 
-- A chatbot demo
-- A replacement for proper observability
-- Magic that "just works" without engineering effort
+ A chatbot demo
+
+ A replacement for proper observability
+
+ Magic that "just works" without engineering effort
 
 ---
 
@@ -389,3 +472,4 @@ If the system can't explain *why* it reached a conclusion, it shouldn't be trust
 ---
 
 *Tags: #AI #LLM #RAG #DevOps #SRE #Observability #Python #FastAPI #VectorDatabase #IncidentManagement*
+

@@ -1,4 +1,9 @@
-﻿# Avinash Amudala
+﻿---
+layout: default
+title: Home
+---
+
+# Avinash Amudala
 
 Welcome to my blog. I write about AI/ML, software engineering, and building useful tools.
 
@@ -6,7 +11,7 @@ Welcome to my blog. I write about AI/ML, software engineering, and building usef
 
 ## Recent Posts
 
-- [Building an AI-Powered Log Analyzer: LLM Incident Copilot](/posts/llm-incident-copilot) - How I built a RAG-based tool that helps engineers debug production incidents faster
+- [Building an AI-Powered Log Analyzer: LLM Incident Copilot](/posts/llm-incident-copilot)  How I built a RAG-based tool that helps engineers debug production incidents faster
 
 ---
 
